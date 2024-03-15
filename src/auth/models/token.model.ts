@@ -1,11 +1,7 @@
-import { Field, ObjectType } from '@nestjs/graphql';
-import { GraphQLJWT } from 'graphql-scalars';
-
-@ObjectType()
+import { IsString } from 'class-validator';
 export class Token {
-  @Field(() => GraphQLJWT, { description: 'JWT access token' })
+  @IsString()
   accessToken: string;
-
-  @Field(() => GraphQLJWT, { description: 'JWT refresh token' })
+  @IsString()
   refreshToken: string;
 }

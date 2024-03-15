@@ -1,18 +1,20 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { IsString, IsBoolean, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 import { User } from '../../users/models/user.model';
-import { BaseModel } from '../../common/models/base.model';
+import { BaseModel } from '../../shared/models/base.model';
 
-@ObjectType()
 export class Post extends BaseModel {
-  @Field()
+  @IsString()
   title: string;
 
-  @Field(() => String, { nullable: true })
+  @IsString()
+  @IsOptional()
   content?: string | null;
 
-  @Field(() => Boolean)
+  @IsBoolean()
   published: boolean;
 
-  @Field(() => User, { nullable: true })
+  @Type(() => User)
+  @IsOptional()
   author?: User | null;
 }

@@ -6,15 +6,20 @@ import { PrismaClientExceptionFilter } from 'nestjs-prisma';
 import { AppModule } from './app.module';
 import type {
   CorsConfig,
-  NestConfig,
   SwaggerConfig,
-} from './common/configs/config.interface';
+} from './shared/configs/config.interface';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Parse cookies
+  app.use(cookieParser());
+
   // Validation
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+  );
 
   // enable shutdown hook
   app.enableShutdownHooks();
@@ -24,27 +29,26 @@ async function bootstrap() {
   app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
 
   const configService = app.get(ConfigService);
-  const nestConfig = configService.get<NestConfig>('nest');
   const corsConfig = configService.get<CorsConfig>('cors');
   const swaggerConfig = configService.get<SwaggerConfig>('swagger');
 
   // Swagger Api
   if (swaggerConfig.enabled) {
     const options = new DocumentBuilder()
-      .setTitle(swaggerConfig.title || 'Nestjs')
-      .setDescription(swaggerConfig.description || 'The nestjs API description')
-      .setVersion(swaggerConfig.version || '1.0')
+      .setTitle(swaggerConfig.title)
+      .setDescription(swaggerConfig.description)
+      .setVersion(swaggerConfig.version)
       .build();
     const document = SwaggerModule.createDocument(app, options);
-
-    SwaggerModule.setup(swaggerConfig.path || 'api', app, document);
+    SwaggerModule.setup(swaggerConfig.path, app, document);
   }
 
   // Cors
   if (corsConfig.enabled) {
     app.enableCors();
   }
-
-  await app.listen(process.env.PORT || nestConfig.port || 3000);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`Application is running on: http://localhost:${port}`);
 }
 bootstrap();

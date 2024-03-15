@@ -3,11 +3,14 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { PasswordService } from './password.service';
-import { GqlAuthGuard } from './gql-auth.guard';
+import { JwtAuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
-import { AuthResolver } from './auth.resolver';
+import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
-import { SecurityConfig } from '../common/configs/config.interface';
+import { SecurityConfig } from '../shared/configs/config.interface';
+import { APP_GUARD } from '@nestjs/core';
+import { SessionsService } from 'src/sessions/sessions.service';
+import { UsersService } from 'src/users/users.service';
 
 @Module({
   imports: [
@@ -27,11 +30,16 @@ import { SecurityConfig } from '../common/configs/config.interface';
   ],
   providers: [
     AuthService,
-    AuthResolver,
     JwtStrategy,
-    GqlAuthGuard,
     PasswordService,
+    UsersService,
+    SessionsService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
-  exports: [GqlAuthGuard],
+  controllers: [AuthController],
+  exports: [],
 })
 export class AuthModule {}

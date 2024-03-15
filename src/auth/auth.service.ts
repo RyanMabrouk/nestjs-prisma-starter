@@ -1,5 +1,4 @@
-import { PrismaService } from 'nestjs-prisma';
-import { Prisma, User } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import {
   Injectable,
   NotFoundException,
@@ -12,33 +11,30 @@ import { JwtService } from '@nestjs/jwt';
 import { PasswordService } from './password.service';
 import { SignupInput } from './dto/signup.input';
 import { Token } from './models/token.model';
-import { SecurityConfig } from '../common/configs/config.interface';
+import { SecurityConfig } from '../shared/configs/config.interface';
+import { UsersService } from 'src/users/users.service';
+import { SessionsService } from 'src/sessions/sessions.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly prisma: PrismaService,
     private readonly passwordService: PasswordService,
     private readonly configService: ConfigService,
+    private readonly usersService: UsersService,
+    private readonly sessionsService: SessionsService,
   ) {}
 
-  async createUser(payload: SignupInput): Promise<Token> {
-    const hashedPassword = await this.passwordService.hashPassword(
-      payload.password,
-    );
-
+  async signup(payload: SignupInput, userAgent: string): Promise<Token> {
     try {
-      const user = await this.prisma.user.create({
-        data: {
-          ...payload,
-          password: hashedPassword,
-          role: 'USER',
-        },
+      const user = await this.usersService.create(payload);
+      const session = await this.sessionsService.create({
+        userId: user.id,
+        userAgent: userAgent,
       });
-
       return this.generateTokens({
         userId: user.id,
+        sessionId: session.id,
       });
     } catch (e) {
       if (
@@ -51,63 +47,80 @@ export class AuthService {
     }
   }
 
-  async login(email: string, password: string): Promise<Token> {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-
+  async login({
+    email,
+    password,
+    userAgent,
+  }: {
+    email: string;
+    password: string;
+    userAgent: string;
+  }): Promise<Token> {
+    const user = await this.usersService.findOne({ where: { email } });
     if (!user) {
       throw new NotFoundException(`No user found for email: ${email}`);
     }
-
+    const session = await this.sessionsService.create({
+      userId: user.id,
+      userAgent: userAgent,
+    });
     const passwordValid = await this.passwordService.validatePassword(
       password,
       user.password,
     );
-
     if (!passwordValid) {
       throw new BadRequestException('Invalid password');
     }
-
     return this.generateTokens({
       userId: user.id,
+      sessionId: session.id,
     });
   }
-
-  validateUser(userId: string): Promise<User> {
-    return this.prisma.user.findUnique({ where: { id: userId } });
+  async logout(sessionId: string) {
+    await this.sessionsService.remove({ id: sessionId });
+    return {
+      accessToken: '',
+      refreshToken: '',
+    };
   }
 
-  getUserFromToken(token: string): Promise<User> {
-    const id = this.jwtService.decode(token)['userId'];
-    return this.prisma.user.findUnique({ where: { id } });
-  }
-
-  generateTokens(payload: { userId: string }): Token {
+  generateTokens(payload: { userId: string; sessionId: string }): Token {
     return {
       accessToken: this.generateAccessToken(payload),
       refreshToken: this.generateRefreshToken(payload),
     };
   }
 
-  private generateAccessToken(payload: { userId: string }): string {
-    return this.jwtService.sign(payload);
-  }
-
-  private generateRefreshToken(payload: { userId: string }): string {
+  private generateAccessToken(payload: {
+    userId: string;
+    sessionId: string;
+  }): string {
     const securityConfig = this.configService.get<SecurityConfig>('security');
     return this.jwtService.sign(payload, {
-      secret: this.configService.get('JWT_REFRESH_SECRET'),
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: securityConfig.refreshIn,
+    });
+  }
+
+  private generateRefreshToken(payload: {
+    userId: string;
+    sessionId: string;
+  }): string {
+    const securityConfig = this.configService.get<SecurityConfig>('security');
+    return this.jwtService.sign(payload, {
+      secret: process.env.JWT_REFRESH_SECRET,
       expiresIn: securityConfig.refreshIn,
     });
   }
 
   refreshToken(token: string) {
     try {
-      const { userId } = this.jwtService.verify(token, {
-        secret: this.configService.get('JWT_REFRESH_SECRET'),
+      const { userId, sessionId } = this.jwtService.verify(token, {
+        secret: process.env.JWT_REFRESH_SECRET,
       });
-
       return this.generateTokens({
         userId,
+        sessionId,
       });
     } catch (e) {
       throw new UnauthorizedException();

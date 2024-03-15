@@ -1,0 +1,29 @@
+import { CookieOptions } from 'express';
+
+export interface Config {
+  cors: CorsConfig;
+  swagger: SwaggerConfig;
+  security: SecurityConfig;
+  cookies: CookieOptions;
+}
+
+export interface CorsConfig {
+  enabled: boolean;
+}
+
+export interface SwaggerConfig {
+  enabled: boolean;
+  title: string;
+  description: string;
+  version: string;
+  path: string;
+}
+
+export interface SecurityConfig {
+  expiresIn: string;
+  refreshIn: string;
+  bcryptSaltOrRound: string | number;
+  units: {
+    [key: string]: number;
+  };
+}

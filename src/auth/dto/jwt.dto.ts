@@ -1,11 +1,8 @@
-export interface JwtDto {
+export class JwtDto {
   userId: string;
-  /**
-   * Issued at
-   */
+  sessionId: string;
+  // Issued at
   iat: number;
-  /**
-   * Expiration time
-   */
+  //Expiration time
   exp: number;
 }
