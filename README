@@ -1,0 +1,23 @@
+# NestJS Starter with Prisma
+
+This is a starter project for building efficient, scalable Node.js server-side applications using [NestJS](https://nestjs.com/) and [Prisma](https://www.prisma.io/).
+
+## Features
+
+- **NestJS** - A progressive Node.js framework for building efficient, reliable and scalable server-side applications.
+- **Prisma** - Next-generation ORM for Node.js and TypeScript.
+- **Swagger** - API documentation using Swagger UI.
+- **CORS** - Cross-Origin Resource Sharing enabled.
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js
+- npm
+
+### Installation
+
+```
+npm install && npm run start:dev
+```
