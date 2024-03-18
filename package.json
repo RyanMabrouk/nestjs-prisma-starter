@@ -18,7 +18,6 @@
     "url": "https://github.com/fivethree-team/nestjs-prisma-client-example/issues"
   },
   "scripts": {
-    "nest:gen": "nest g resource users --no-spec",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
